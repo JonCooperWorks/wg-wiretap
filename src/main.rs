@@ -109,14 +109,13 @@ async fn main() -> Result<(), anyhow::Error> {
             for log in &packet_logs {
                 serializer.serialize(&log).await.unwrap();
             }
-            let f = serializer.into_inner().await.unwrap();
-
+            let body = serializer.into_inner().await.unwrap();
             let timestamp = utils::timestamp();
             let filename = format!("{}.csv", timestamp);
             let req = PutObjectRequest {
                 bucket: config.storage_bucket.to_owned(),
                 key: filename.to_owned(),
-                body: Some(f.into()),
+                body: Some(body.into()),
                 ..Default::default()
             };
 
