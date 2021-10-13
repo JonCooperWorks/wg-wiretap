@@ -1,0 +1,20 @@
+[package]
+name = "wg-wiretap"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.42"
+pcap = { version = "0.9", features = ["capture-stream"] }
+etherparse = "0.9.0"
+tokio = { version = "1.9.0", features = ["full"] }
+tokio-stream = "0.1.7"
+futures-batch = "0.6.0"
+futures = "0.3"
+csv-async = {version = "1.1", features = ["tokio", "with_serde"]}
+structopt = "0.3"
+serde = {version = "1.0.130", features = ["derive"]}
+rusoto_core = { version="0.47.0", default_features=false, features=["rustls"] }
+rusoto_s3 = { version="0.47.0", default_features=false, features=["rustls"] }
