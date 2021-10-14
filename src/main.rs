@@ -63,21 +63,21 @@ async fn main() -> Result<(), anyhow::Error> {
 
         while let Ok(packet) = cap.next() {
             let packet = PacketHeaders::from_ip_slice(&packet).unwrap();
-            let (src, dst) = match packet.ip.unwrap() {
+            let (src, dst, l3_protocol) = match packet.ip.unwrap() {
                 IpHeader::Version4(ipv4) => {
-                    (IpAddr::V4(Ipv4Addr::from(ipv4.source)), IpAddr::V4(Ipv4Addr::from(ipv4.destination)))
+                    (IpAddr::V4(Ipv4Addr::from(ipv4.source)), IpAddr::V4(Ipv4Addr::from(ipv4.destination)), ipv4.protocol)
                 } 
                 IpHeader::Version6(ipv6) => {
-                    (IpAddr::V6(Ipv6Addr::from(ipv6.source)), IpAddr::V6(Ipv6Addr::from(ipv6.destination)))
+                    (IpAddr::V6(Ipv6Addr::from(ipv6.source)), IpAddr::V6(Ipv6Addr::from(ipv6.destination)), ipv6.next_header)
                 }
             };
 
-            let (src_port, dst_port, l3_protocol) = match packet.transport.unwrap() {
+            let (src_port, dst_port) = match packet.transport.unwrap() {
                 TransportHeader::Udp(udp) => {
-                    (udp.source_port, udp.destination_port, 0x11)
+                    (udp.source_port, udp.destination_port)
                 }
                 TransportHeader::Tcp(tcp) => {
-                    (tcp.source_port, tcp.destination_port, 0x06)
+                    (tcp.source_port, tcp.destination_port)
                 }
             };
 
