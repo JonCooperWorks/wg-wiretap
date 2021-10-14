@@ -1,9 +1,9 @@
 use csv_async::AsyncSerializer;
 use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use futures_batch::ChunksTimeoutStreamExt;
+use pcap::Capture;
 use rusoto_core::Region;
 use rusoto_s3::{PutObjectRequest, S3Client, S3};
-use pcap::Capture;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::thread;
 use std::time::Duration;
@@ -56,7 +56,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let (packet_tx, packet_rx) = mpsc::channel::<storage::FlowLog>(config.max_packets_per_log);
     let iface = opt.iface.clone();
     thread::spawn(move || {
-        let mut cap = Capture::from_device(iface.as_str()).unwrap()
+        let mut cap = Capture::from_device(iface.as_str())
+            .unwrap()
             .promisc(false)
             .open()
             .unwrap();
@@ -64,24 +65,24 @@ async fn main() -> Result<(), anyhow::Error> {
         while let Ok(packet) = cap.next() {
             let packet = PacketHeaders::from_ip_slice(&packet).unwrap();
             let (src, dst, l3_protocol) = match packet.ip.unwrap() {
-                IpHeader::Version4(ipv4) => {
-                    (IpAddr::V4(Ipv4Addr::from(ipv4.source)), IpAddr::V4(Ipv4Addr::from(ipv4.destination)), ipv4.protocol)
-                } 
-                IpHeader::Version6(ipv6) => {
-                    (IpAddr::V6(Ipv6Addr::from(ipv6.source)), IpAddr::V6(Ipv6Addr::from(ipv6.destination)), ipv6.next_header)
-                }
+                IpHeader::Version4(ipv4) => (
+                    IpAddr::V4(Ipv4Addr::from(ipv4.source)),
+                    IpAddr::V4(Ipv4Addr::from(ipv4.destination)),
+                    ipv4.protocol,
+                ),
+                IpHeader::Version6(ipv6) => (
+                    IpAddr::V6(Ipv6Addr::from(ipv6.source)),
+                    IpAddr::V6(Ipv6Addr::from(ipv6.destination)),
+                    ipv6.next_header,
+                ),
             };
 
             let (src_port, dst_port) = match packet.transport.unwrap() {
-                TransportHeader::Udp(udp) => {
-                    (udp.source_port, udp.destination_port)
-                }
-                TransportHeader::Tcp(tcp) => {
-                    (tcp.source_port, tcp.destination_port)
-                }
+                TransportHeader::Udp(udp) => (udp.source_port, udp.destination_port),
+                TransportHeader::Tcp(tcp) => (tcp.source_port, tcp.destination_port),
             };
 
-            let log = storage::FlowLog{
+            let log = storage::FlowLog {
                 src: src,
                 src_port: src_port,
                 dst: dst,
@@ -92,14 +93,15 @@ async fn main() -> Result<(), anyhow::Error> {
             packet_tx.blocking_send(log).ok();
         }
     });
+    // Wrap rx in a stream and split it into chunks of max_packets_per_log
+    let mut packet_events = ReceiverStream::new(packet_rx)
+        .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
-    // Send packet logs to cloud storage.
-    task::spawn(async move {
-        // Wrap rx in a stream and split it into chunks of max_packets_per_log
-        let mut packet_events = ReceiverStream::new(packet_rx)
-            .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
-
-        while let Some(packet_logs) = packet_events.next().await {
+    while let Some(packet_logs) = packet_events.next().await {
+        let s3 = s3.clone();
+        let bucket = config.storage_bucket.clone();
+        // Send packet logs to cloud storage.
+        task::spawn(async move {
             let mut serializer = AsyncSerializer::from_writer(vec![]);
 
             for log in &packet_logs {
@@ -109,7 +111,7 @@ async fn main() -> Result<(), anyhow::Error> {
             let timestamp = utils::timestamp();
             let filename = format!("{}.csv", timestamp);
             let req = PutObjectRequest {
-                bucket: config.storage_bucket.to_owned(),
+                bucket: bucket.to_owned(),
                 key: filename.to_owned(),
                 body: Some(body.into()),
                 ..Default::default()
@@ -121,17 +123,12 @@ async fn main() -> Result<(), anyhow::Error> {
             for log in packet_logs {
                 println!(
                     "{}: {} {}:{} -> {}:{}",
-                    log.timestamp,
-                    log.l3_protocol,
-                    log.src,
-                    log.src_port,
-                    log.dst,
-                    log.dst_port,
+                    log.timestamp, log.l3_protocol, log.src, log.src_port, log.dst, log.dst_port,
                 );
             }
             println!("Saved {}", filename);
-        }
-    });
+        });
+    }
 
     signal::ctrl_c().await.expect("failed to listen for event");
     Ok::<_, anyhow::Error>(())
