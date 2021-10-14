@@ -62,17 +62,13 @@ async fn main() -> Result<(), anyhow::Error> {
             .unwrap();
 
         while let Ok(packet) = cap.next() {
-            // TODO: parse out storage::FlowLog from packet and send down tx
             let packet = PacketHeaders::from_ip_slice(&packet).unwrap();
             let (src, dst) = match packet.ip.unwrap() {
                 IpHeader::Version4(ipv4) => {
-                    let src = Ipv4Addr::new(ipv4.source[0], ipv4.source[1], ipv4.source[2], ipv4.source[3]);
-                    let dst = Ipv4Addr::new(ipv4.destination[0], ipv4.destination[1], ipv4.destination[2], ipv4.destination[3]);
-                    (IpAddr::V4(src), IpAddr::V4(dst))
+                    (IpAddr::V4(Ipv4Addr::from(ipv4.source)), IpAddr::V4(Ipv4Addr::from(ipv4.destination)))
                 } 
-                IpHeader::Version6(_) => {
-                    // TODO: build IPv6
-                    panic!("oh no!");
+                IpHeader::Version6(ipv6) => {
+                    (IpAddr::V6(Ipv6Addr::from(ipv6.source)), IpAddr::V6(Ipv6Addr::from(ipv6.destination)))
                 }
             };
 
