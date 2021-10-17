@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use pcap::stream::PacketCodec;
-use pcap::Packet;
+use pcap::{Error::PcapError, Packet};
 
 use crate::{storage, utils};
 
@@ -26,7 +26,7 @@ impl PacketCodec for FlowLogCodec {
                         ipv6.next_header,
                     ),
 
-                    _ => panic!("unsupported packet type"),
+                    _ => return Err(PcapError("unsupported packet type".to_string())),
                 };
 
                 let (src_port, dst_port) = match packet.transport {
@@ -46,7 +46,7 @@ impl PacketCodec for FlowLogCodec {
                 Ok(log)
             }
 
-            Err(err) => Err(pcap::Error::PcapError(err.to_string())),
+            Err(err) => Err(PcapError(err.to_string())),
         }
     }
 }
