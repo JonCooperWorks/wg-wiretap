@@ -48,7 +48,7 @@ impl PacketCodec for FlowLogCodec {
             }
 
             // TODO: handle this better
-            Err(_) => Err(pcap::Error::InvalidString),
+            Err(err) => Err(pcap::Error::PcapError(err.to_string())),
         }
     }
 }
