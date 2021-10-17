@@ -82,7 +82,7 @@ async fn main() -> Result<(), anyhow::Error> {
                             log.dst_port,
                         );
                     }
-                    Err(err) => println!("Error parsing packet: {}", err),
+                    Err(err) => eprintln!("Error parsing packet: {}", err),
                 }
             }
 
