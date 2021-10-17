@@ -87,18 +87,22 @@ async fn main() -> Result<(), anyhow::Error> {
             }
 
             let body = serializer.into_inner().await.unwrap();
-            let timestamp = utils::timestamp();
-            let filename = format!("{}.csv", timestamp);
-            let req = PutObjectRequest {
-                bucket: bucket.to_owned(),
-                key: filename.to_owned(),
-                body: Some(body.into()),
-                ..Default::default()
-            };
 
-            // TODO: handle errors from S3
-            let _res = s3.put_object(req).await.unwrap();
-            println!("Saved {}", filename);
+            // Only send something to S3 if there are logs in the buffer
+            if body.len() > 0 {
+                let timestamp = utils::timestamp();
+                let filename = format!("{}.csv", timestamp);
+                let req = PutObjectRequest {
+                    bucket: bucket.to_owned(),
+                    key: filename.to_owned(),
+                    body: Some(body.into()),
+                    ..Default::default()
+                };
+
+                // TODO: handle errors from S3
+                let _res = s3.put_object(req).await.unwrap();
+                println!("Saved {}", filename);
+            }
         });
     }
 

@@ -1,6 +1,8 @@
 # wg-wiretap
-`wg-wiretap` is a simple PCAP flow logger that will listen on an interface and log packets.
-It is meant to let me take per-client logs through my Wireguard VPNs.
+`wg-wiretap` is a simple PCAP flow logger that will listen on a Wireguard interface and log IP packets.
+Since Wireguard doesn't send ethernet frames, `wg-wiretap` will not interpret them and will fail on any interface that sends them.
+Check out [wiretap](https://github.com/JonCooperWorks/wiretap) for an example of logging ethernet frames using eBPF.
+I use this to let me take per-client logs through my Wireguard VPNs.
 `wg-wiretap` will take flow logs from a Wireguard interface and store them to AWS S3 compatible cloud storage as CSV.
 The S3 credentials should be set as environment variables with the following names:
 
@@ -14,6 +16,7 @@ AWS_SECRET_ACCESS_KEY
 ## Prerequisites
 
 ### Setup
+This was done on a [DigitalOcean](https://m.do.co/c/515db03705b4) Droplet with 2GB of RAM.
 
 #### Ubuntu 21.04
 First, install dependencies with the following commands:
