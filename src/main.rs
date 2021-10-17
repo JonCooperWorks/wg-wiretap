@@ -1,19 +1,18 @@
 use csv_async::AsyncSerializer;
-use etherparse::{IpHeader, PacketHeaders, TransportHeader};
+use futures::StreamExt;
 use futures_batch::ChunksTimeoutStreamExt;
 use pcap::Capture;
 use rusoto_core::Region;
 use rusoto_s3::{PutObjectRequest, S3Client, S3};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::thread;
+
 use std::time::Duration;
 use structopt::StructOpt;
-use tokio::{signal, sync::mpsc, task};
-use tokio_stream::wrappers::ReceiverStream;
-use tokio_stream::StreamExt;
+use tokio::{signal, task};
 
 mod storage;
+mod packet;
 mod utils;
+use packet::FlowLogCodec;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -46,55 +45,19 @@ async fn main() -> Result<(), anyhow::Error> {
         endpoint: opt.storage_endpoint,
     };
     let s3 = S3Client::new(region);
-
     let config = storage::Config {
         max_packets_per_log: opt.max_packets_per_log,
         packet_log_interval: Duration::from_secs(opt.packet_log_interval * 60),
         storage_bucket: opt.storage_bucket,
     };
 
-    let (packet_tx, packet_rx) = mpsc::channel::<storage::FlowLog>(config.max_packets_per_log);
-    let iface = opt.iface.clone();
-    thread::spawn(move || {
-        let mut cap = Capture::from_device(iface.as_str())
-            .unwrap()
-            .promisc(false)
-            .open()
-            .unwrap();
-
-        while let Ok(packet) = cap.next() {
-            let packet = PacketHeaders::from_ip_slice(&packet).unwrap();
-            let (src, dst, l3_protocol) = match packet.ip.unwrap() {
-                IpHeader::Version4(ipv4) => (
-                    IpAddr::V4(Ipv4Addr::from(ipv4.source)),
-                    IpAddr::V4(Ipv4Addr::from(ipv4.destination)),
-                    ipv4.protocol,
-                ),
-                IpHeader::Version6(ipv6) => (
-                    IpAddr::V6(Ipv6Addr::from(ipv6.source)),
-                    IpAddr::V6(Ipv6Addr::from(ipv6.destination)),
-                    ipv6.next_header,
-                ),
-            };
-
-            let (src_port, dst_port) = match packet.transport.unwrap() {
-                TransportHeader::Udp(udp) => (udp.source_port, udp.destination_port),
-                TransportHeader::Tcp(tcp) => (tcp.source_port, tcp.destination_port),
-            };
-
-            let log = storage::FlowLog {
-                src: src,
-                src_port: src_port,
-                dst: dst,
-                dst_port: dst_port,
-                l3_protocol: l3_protocol,
-                timestamp: utils::timestamp(),
-            };
-            packet_tx.blocking_send(log).ok();
-        }
-    });
-    // Wrap rx in a stream and split it into chunks of max_packets_per_log
-    let mut packet_events = ReceiverStream::new(packet_rx)
+    let cap = Capture::from_device(opt.iface.as_str())?
+            .immediate_mode(false)
+            .open()?
+            .setnonblock()?;
+    
+    // Split logs into chunks of max_packets_per_log
+    let mut packet_events = cap.stream(FlowLogCodec{})?
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_logs) = packet_events.next().await {
@@ -104,8 +67,18 @@ async fn main() -> Result<(), anyhow::Error> {
         task::spawn(async move {
             let mut serializer = AsyncSerializer::from_writer(vec![]);
 
-            for log in &packet_logs {
-                serializer.serialize(&log).await.unwrap();
+            for result in &packet_logs {
+                match result {
+                    Ok(log) => {
+                        serializer.serialize(&log).await.unwrap();
+                        println!(
+                            "{}: {} {}:{} -> {}:{}",
+                            log.timestamp, log.l3_protocol, log.src, log.src_port, log.dst, log.dst_port,
+                        );
+                    }
+                    _ => todo!("build this")
+                }
+                
             }
             let body = serializer.into_inner().await.unwrap();
             let timestamp = utils::timestamp();
@@ -119,13 +92,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
             // TODO: handle errors from S3
             let _res = s3.put_object(req).await.unwrap();
-
-            for log in packet_logs {
-                println!(
-                    "{}: {} {}:{} -> {}:{}",
-                    log.timestamp, log.l3_protocol, log.src, log.src_port, log.dst, log.dst_port,
-                );
-            }
             println!("Saved {}", filename);
         });
     }
