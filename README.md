@@ -71,7 +71,3 @@ cargo run --bin wg-wiretap -- \
 --max-packets-per-log 1000000 \
 --packet-log-interval 5
 ```
-
-
-## Known issues
-- `wg-wiretap` hangs randomly and doesn't seem to log any more packets after a few batches
