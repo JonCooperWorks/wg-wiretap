@@ -76,7 +76,10 @@ async fn main() -> Result<(), anyhow::Error> {
                             log.timestamp, log.l3_protocol, log.src, log.src_port, log.dst, log.dst_port,
                         );
                     }
-                    _ => todo!("build this")
+                    Err(err) => {
+                        println!("Error parsing packet: {}", err);
+                        continue;
+                    }
                 }
                 
             }
