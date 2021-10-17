@@ -84,7 +84,6 @@ async fn main() -> Result<(), anyhow::Error> {
                     }
                     Err(err) => {
                         println!("Error parsing packet: {}", err);
-                        continue;
                     }
                 }
             }
