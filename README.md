@@ -64,3 +64,7 @@ You can change these with the `--max-packets-per-log` and `--packet-log-interval
 AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
 =AWS_SECRET_KEY cargo run --bin wg-wiretap -- --iface wg0 --storage-bucket bucket-name --storage-endpoint https://s3-storage-endpoint --storage-region s3-region --max-packets-per-log 1000000 --packet-log-interval 5
 ```
+
+
+## Known issues
+- `wg-wiretap` hangs randomly and doesn't seem to log any more packets after a few batches
