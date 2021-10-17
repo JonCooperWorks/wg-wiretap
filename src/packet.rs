@@ -1,11 +1,10 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use pcap::stream::PacketCodec;
 use pcap::Packet;
-use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 
 use crate::{storage, utils};
-
 
 pub struct FlowLogCodec;
 
@@ -27,15 +26,15 @@ impl PacketCodec for FlowLogCodec {
                         ipv6.next_header,
                     ),
 
-                    _ => panic!("unsupported packet type")
+                    _ => panic!("unsupported packet type"),
                 };
-    
+
                 let (src_port, dst_port) = match packet.transport {
                     Some(TransportHeader::Udp(udp)) => (udp.source_port, udp.destination_port),
                     Some(TransportHeader::Tcp(tcp)) => (tcp.source_port, tcp.destination_port),
                     None => (0u16, 0u16),
                 };
-    
+
                 let log = storage::FlowLog {
                     src: src,
                     src_port: src_port,

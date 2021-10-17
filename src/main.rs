@@ -9,8 +9,8 @@ use std::time::Duration;
 use structopt::StructOpt;
 use tokio::{signal, task};
 
-mod storage;
 mod packet;
+mod storage;
 mod utils;
 use packet::FlowLogCodec;
 
@@ -52,12 +52,13 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let cap = Capture::from_device(opt.iface.as_str())?
-            .immediate_mode(false)
-            .open()?
-            .setnonblock()?;
-    
+        .immediate_mode(false)
+        .open()?
+        .setnonblock()?;
+
     // Split logs into chunks of max_packets_per_log
-    let mut packet_events = cap.stream(FlowLogCodec{})?
+    let mut packet_events = cap
+        .stream(FlowLogCodec {})?
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_logs) = packet_events.next().await {
@@ -73,7 +74,12 @@ async fn main() -> Result<(), anyhow::Error> {
                         serializer.serialize(&log).await.unwrap();
                         println!(
                             "{}: {} {}:{} -> {}:{}",
-                            log.timestamp, log.l3_protocol, log.src, log.src_port, log.dst, log.dst_port,
+                            log.timestamp,
+                            log.l3_protocol,
+                            log.src,
+                            log.src_port,
+                            log.dst,
+                            log.dst_port,
                         );
                     }
                     Err(err) => {
@@ -81,8 +87,8 @@ async fn main() -> Result<(), anyhow::Error> {
                         continue;
                     }
                 }
-                
             }
+
             let body = serializer.into_inner().await.unwrap();
             let timestamp = utils::timestamp();
             let filename = format!("{}.csv", timestamp);
