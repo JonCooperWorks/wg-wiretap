@@ -13,7 +13,7 @@ AWS_SECRET_ACCESS_KEY
 
 `wg-wiretap` is meant to help me learn and should not be used in a production environment.
 
-## Prerequisites
+## Build Prerequisites
 
 ### Setup
 This was done on a [DigitalOcean](https://m.do.co/c/515db03705b4) Droplet with 2GB of RAM.
@@ -37,13 +37,15 @@ rustup install stable
 ```
 
 ## Build
-
 ```bash
+# Generate development build
 cargo build
+
+# Generate release build
+cargo build --release
 ```
 
 ## Run
-
 `wg-wiretap` can be configured to send flow logs for a particular interface to [S3](https://aws.amazon.com/s3/) compatible storage.
 By default, it will log from `wg0`, but can be made to listen to any interface with the `--iface` flag.
 
