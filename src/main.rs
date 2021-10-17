@@ -51,7 +51,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let cap = Capture::from_device(opt.iface.as_str())?
-        .immediate_mode(true)
+        .immediate_mode(false)
         .open()?
         .setnonblock()?;
 
