@@ -12,7 +12,6 @@ use tokio::{signal, task};
 mod packet;
 mod storage;
 mod utils;
-use packet::FlowLogCodec;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -58,7 +57,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Split logs into chunks of max_packets_per_log
     let mut packet_events = cap
-        .stream(FlowLogCodec {})?
+        .stream(packet::FlowLogCodec {})?
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_logs) = packet_events.next().await {
