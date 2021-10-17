@@ -21,7 +21,7 @@ This was done on a [DigitalOcean](https://m.do.co/c/515db03705b4) Droplet with 2
 #### Ubuntu 21.04
 First, install dependencies with the following commands:
 
-```
+```bash
 # First update package lists and packages.
 sudo apt-get update
 sudo apt-get upgrade
@@ -61,8 +61,15 @@ By default, it will log every million (1000000) packets or 5 minutes, whichever 
 You can change these with the `--max-packets-per-log` and `--packet-log-interval` flags.
 
 ```bash
-AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
-=AWS_SECRET_KEY cargo run --bin wg-wiretap -- --iface wg0 --storage-bucket bucket-name --storage-endpoint https://s3-storage-endpoint --storage-region s3-region --max-packets-per-log 1000000 --packet-log-interval 5
+AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID \
+AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY \
+cargo run --bin wg-wiretap -- \
+--iface wg0 \
+--storage-bucket bucket-name \
+--storage-endpoint https://s3-storage-endpoint \
+--storage-region s3-region \
+--max-packets-per-log 1000000 \
+--packet-log-interval 5
 ```
 
 
