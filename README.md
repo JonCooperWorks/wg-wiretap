@@ -26,7 +26,7 @@ First, install dependencies with the following commands:
 sudo apt-get update
 sudo apt-get upgrade
 
-# Then install the packages needed to compile bpf modules
+# Then install PCAP dependencies
 sudo apt-get install -y sudo build-essential libpcap-dev
 
 # Install Rust
