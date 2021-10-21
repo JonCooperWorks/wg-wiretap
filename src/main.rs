@@ -88,7 +88,7 @@ async fn main() -> Result<(), anyhow::Error> {
             let body = serializer.into_inner().await.unwrap();
 
             // Only send something to S3 if there are logs in the buffer
-            if body.len() > 0 {
+            if body.is_empty() {
                 let timestamp = utils::timestamp();
                 let filename = format!("{}.csv", timestamp);
                 let req = PutObjectRequest {

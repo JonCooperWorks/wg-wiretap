@@ -35,13 +35,14 @@ impl PacketCodec for FlowLogCodec {
                     None => (0u16, 0u16),
                 };
 
+                let timestamp = utils::timestamp();
                 let log = storage::FlowLog {
-                    src: src,
-                    src_port: src_port,
-                    dst: dst,
-                    dst_port: dst_port,
-                    l3_protocol: l3_protocol,
-                    timestamp: utils::timestamp(),
+                    src,
+                    src_port,
+                    dst,
+                    dst_port,
+                    l3_protocol,
+                    timestamp,
                 };
                 Ok(log)
             }
