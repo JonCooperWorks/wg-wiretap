@@ -92,10 +92,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 let timestamp = utils::timestamp();
                 let filename = format!("{}.csv", timestamp);
                 let req = PutObjectRequest {
-                    bucket: bucket.to_owned(),
-                    key: filename.to_owned(),
+                    bucket: bucket.clone(),
+                    key: filename.clone(),
                     body: Some(body.into()),
-                    ..Default::default()
+                    ..PutObjectRequest::default()
                 };
 
                 // TODO: handle errors from S3

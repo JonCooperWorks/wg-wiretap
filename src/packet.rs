@@ -32,7 +32,7 @@ impl PacketCodec for FlowLogCodec {
                 let (src_port, dst_port) = match packet.transport {
                     Some(TransportHeader::Udp(udp)) => (udp.source_port, udp.destination_port),
                     Some(TransportHeader::Tcp(tcp)) => (tcp.source_port, tcp.destination_port),
-                    None => (0u16, 0u16),
+                    None => (0_u16, 0_u16),
                 };
 
                 let timestamp = utils::timestamp();
