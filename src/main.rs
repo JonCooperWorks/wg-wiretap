@@ -32,6 +32,9 @@ struct Opt {
 
     #[structopt(long, default_value = "5")]
     packet_log_interval: u64,
+
+    #[structopt(long)]
+    immediate_mode: bool,
 }
 
 #[tokio::main]
@@ -51,7 +54,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let cap = Capture::from_device(opt.iface.as_str())?
-        .immediate_mode(false)
+        .immediate_mode(opt.immediate_mode)
         .open()?
         .setnonblock()?;
 
@@ -86,22 +89,18 @@ async fn main() -> Result<(), anyhow::Error> {
             }
 
             let body = serializer.into_inner().await.unwrap();
+            let timestamp = utils::timestamp();
+            let filename = format!("{}.csv", timestamp);
+            let req = PutObjectRequest {
+                bucket: bucket.clone(),
+                key: filename.clone(),
+                body: Some(body.into()),
+                ..PutObjectRequest::default()
+            };
 
-            // Only send something to S3 if there are logs in the buffer
-            if body.is_empty() {
-                let timestamp = utils::timestamp();
-                let filename = format!("{}.csv", timestamp);
-                let req = PutObjectRequest {
-                    bucket: bucket.clone(),
-                    key: filename.clone(),
-                    body: Some(body.into()),
-                    ..PutObjectRequest::default()
-                };
-
-                // TODO: handle errors from S3
-                let _res = s3.put_object(req).await.unwrap();
-                println!("Saved {}", filename);
-            }
+            // TODO: handle errors from S3
+            let _res = s3.put_object(req).await.unwrap();
+            println!("Saved {}", filename);
         });
     }
 

@@ -15,7 +15,7 @@ pub struct FlowLog {
     pub dst: IpAddr,
     pub dst_port: u16,
     pub l3_protocol: u8,
-    pub timestamp: u64,
+    pub timestamp: u128,
 }
 
 unsafe impl Send for FlowLog {}
