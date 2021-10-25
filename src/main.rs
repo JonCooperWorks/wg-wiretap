@@ -32,9 +32,6 @@ struct Opt {
 
     #[structopt(long, default_value = "5")]
     packet_log_interval: u64,
-
-    #[structopt(long)]
-    immediate_mode: bool,
 }
 
 #[tokio::main]
@@ -54,7 +51,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let cap = Capture::from_device(opt.iface.as_str())?
-        .immediate_mode(opt.immediate_mode)
+        .immediate_mode(true)
         .open()?
         .setnonblock()?;
 
@@ -63,27 +60,17 @@ async fn main() -> Result<(), anyhow::Error> {
         .stream(packet::FlowLogCodec {})?
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
-    while let Some(packet_logs) = packet_events.next().await {
+    while let Some(packet_chunk) = packet_events.next().await {
         let s3 = s3.clone();
         let bucket = config.storage_bucket.clone();
+
         // Send packet logs to cloud storage.
         task::spawn(async move {
             let mut serializer = AsyncSerializer::from_writer(vec![]);
 
-            for result in &packet_logs {
+            for result in &packet_chunk {
                 match result {
-                    Ok(log) => {
-                        serializer.serialize(&log).await.unwrap();
-                        println!(
-                            "{}: {} {}:{} -> {}:{}",
-                            log.timestamp,
-                            log.l3_protocol,
-                            log.src,
-                            log.src_port,
-                            log.dst,
-                            log.dst_port,
-                        );
-                    }
+                    Ok(log) => serializer.serialize(&log).await.unwrap(),
                     Err(err) => eprintln!("Error parsing packet: {}", err),
                 }
             }
@@ -100,6 +87,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
             // TODO: handle errors from S3
             let _res = s3.put_object(req).await.unwrap();
+
             println!("Saved {}", filename);
         });
     }

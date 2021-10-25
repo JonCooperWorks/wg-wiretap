@@ -836,8 +836,7 @@ dependencies = [
 [[package]]
 name = "pcap"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2c0c35c3e9d991745373c609af1acdc4fd88478aa55f53fe61b087418ca4bdd"
+source = "git+https://github.com/DanielRussell/pcap?branch=tokio_clear_ready#159b6739ca093bcae37d9037d27fbf9a51283fe8"
 dependencies = [
  "errno",
  "futures",
