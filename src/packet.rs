@@ -10,9 +10,9 @@ use crate::utils;
 #[derive(Serialize)]
 pub struct FlowLog {
     pub src: IpAddr,
-    pub src_port: u16,
+    pub src_port: Option<u16>,
     pub dst: IpAddr,
-    pub dst_port: u16,
+    pub dst_port: Option<u16>,
     pub l3_protocol: u8,
     pub timestamp: u128,
 }
@@ -43,9 +43,13 @@ impl PacketCodec for FlowLogCodec {
                 };
 
                 let (src_port, dst_port) = match packet.transport {
-                    Some(TransportHeader::Udp(udp)) => (udp.source_port, udp.destination_port),
-                    Some(TransportHeader::Tcp(tcp)) => (tcp.source_port, tcp.destination_port),
-                    None => (0_u16, 0_u16),
+                    Some(TransportHeader::Udp(udp)) => {
+                        (Some(udp.source_port), Some(udp.destination_port))
+                    }
+                    Some(TransportHeader::Tcp(tcp)) => {
+                        (Some(tcp.source_port), Some(tcp.destination_port))
+                    }
+                    None => (None, None),
                 };
 
                 let timestamp = utils::timestamp();
