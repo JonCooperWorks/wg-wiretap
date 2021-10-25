@@ -3,13 +3,26 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use pcap::stream::PacketCodec;
 use pcap::{Error::PcapError, Packet};
+use serde::Serialize;
 
-use crate::{storage, utils};
+use crate::utils;
+
+#[derive(Serialize)]
+pub struct FlowLog {
+    pub src: IpAddr,
+    pub src_port: u16,
+    pub dst: IpAddr,
+    pub dst_port: u16,
+    pub l3_protocol: u8,
+    pub timestamp: u128,
+}
+
+unsafe impl Send for FlowLog {}
 
 pub struct FlowLogCodec;
 
 impl PacketCodec for FlowLogCodec {
-    type Type = storage::FlowLog;
+    type Type = FlowLog;
 
     fn decode(&mut self, packet: Packet) -> Result<Self::Type, pcap::Error> {
         match PacketHeaders::from_ip_slice(&packet) {
@@ -36,7 +49,7 @@ impl PacketCodec for FlowLogCodec {
                 };
 
                 let timestamp = utils::timestamp();
-                let log = storage::FlowLog {
+                let log = FlowLog {
                     src,
                     src_port,
                     dst,
