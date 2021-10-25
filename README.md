@@ -48,6 +48,11 @@ cargo build --release
 ## Run
 `wg-wiretap` can be configured to send flow logs for a particular interface to [S3](https://aws.amazon.com/s3/) compatible storage.
 By default, it will log from `wg0`, but can be made to listen to any interface with the `--iface` flag.
+You can run this without root by setting the `CAP_NET_RAW,CAP_NET_ADMIN=+eip` capabilities on the `wg-wiretap` binary.
+
+```bash
+sudo setcap CAP_NET_RAW,CAP_NET_ADMIN=+eip wg-wiretap
+```
 
 ### S3 Storage
 `wg-wiretap` expects AWS credentials to be passed the environment variables:
