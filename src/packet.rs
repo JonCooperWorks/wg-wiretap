@@ -14,6 +14,7 @@ pub struct FlowLog {
     pub dst: IpAddr,
     pub dst_port: Option<u16>,
     pub l3_protocol: u8,
+    pub size: u32,
     pub timestamp: u128,
 }
 
@@ -25,6 +26,7 @@ impl PacketCodec for FlowLogCodec {
     type Type = FlowLog;
 
     fn decode(&mut self, packet: Packet) -> Result<Self::Type, pcap::Error> {
+        let size = packet.header.len;
         match PacketHeaders::from_ip_slice(&packet) {
             Ok(packet) => {
                 let (src, dst, l3_protocol) = match packet.ip {
@@ -59,6 +61,7 @@ impl PacketCodec for FlowLogCodec {
                     dst,
                     dst_port,
                     l3_protocol,
+                    size,
                     timestamp,
                 };
                 Ok(log)
