@@ -43,6 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
         name: opt.storage_region,
         endpoint: opt.storage_endpoint,
     };
+
     let s3 = S3Client::new(region);
     let config = storage::Config {
         max_packets_per_log: opt.max_packets_per_log,
@@ -85,10 +86,10 @@ async fn main() -> Result<(), anyhow::Error> {
                 ..PutObjectRequest::default()
             };
 
-            // TODO: handle errors from S3
-            let _res = s3.put_object(req).await.unwrap();
-
-            println!("Saved {}", filename);
+            match s3.put_object(req).await {
+                Ok(_) => println!("Saved {}", filename),
+                Err(err) => eprintln!("Error saving to S3: {}", err.to_string()),
+            }
         });
     }
 
