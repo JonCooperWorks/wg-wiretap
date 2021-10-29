@@ -18,3 +18,5 @@ structopt = "0.3"
 serde = {version = "1.0.130", features = ["derive"]}
 rusoto_core = { version="0.47.0", default_features=false, features=["rustls"] }
 rusoto_s3 = { version="0.47.0", default_features=false, features=["rustls"] }
+dns-parser = "0.8.0"
+base64 = "0.13.0"

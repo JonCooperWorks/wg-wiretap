@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
+use dns_parser::Packet as DnsPacket;
 use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use pcap::stream::PacketCodec;
 use pcap::{Error::PcapError, Packet};
@@ -7,6 +8,9 @@ use serde::Serialize;
 
 use crate::utils;
 
+/// A FlowLog is a CSV record of a packet sent over a Wireguard network interface.
+/// The dns field should contain a base64 encoded DNS packet.
+/// This 
 #[derive(Serialize)]
 pub struct FlowLog {
     pub src: IpAddr,
@@ -16,6 +20,7 @@ pub struct FlowLog {
     pub l3_protocol: u8,
     pub size: u32,
     pub timestamp: u128,
+    pub dns: Option<String>,
 }
 
 unsafe impl Send for FlowLog {}
@@ -44,14 +49,18 @@ impl PacketCodec for FlowLogCodec {
                     _ => return Err(PcapError("unsupported packet type".to_string())),
                 };
 
-                let (src_port, dst_port) = match packet.transport {
-                    Some(TransportHeader::Udp(udp)) => {
-                        (Some(udp.source_port), Some(udp.destination_port))
-                    }
-                    Some(TransportHeader::Tcp(tcp)) => {
-                        (Some(tcp.source_port), Some(tcp.destination_port))
-                    }
-                    None => (None, None),
+                let (src_port, dst_port, dns) = match packet.transport {
+                    Some(TransportHeader::Udp(udp)) => (
+                        Some(udp.source_port),
+                        Some(udp.destination_port),
+                        base64_dns_packet(packet.payload),
+                    ),
+                    Some(TransportHeader::Tcp(tcp)) => (
+                        Some(tcp.source_port),
+                        Some(tcp.destination_port),
+                        base64_dns_packet(packet.payload),
+                    ),
+                    None => (None, None, None),
                 };
 
                 let timestamp = utils::timestamp();
@@ -63,11 +72,19 @@ impl PacketCodec for FlowLogCodec {
                     l3_protocol,
                     size,
                     timestamp,
+                    dns,
                 };
                 Ok(log)
             }
 
             Err(err) => Err(PcapError(err.to_string())),
         }
+    }
+}
+
+fn base64_dns_packet(packet: &[u8]) -> Option<String> {
+    match DnsPacket::parse(packet) {
+        Ok(_) => Some(base64::encode(packet)),
+        Err(_) => None,
     }
 }
