@@ -57,8 +57,8 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     // Set up error handling
-    let error_handler = ErrorHandler{
-        sentry_dsn:opt.sentry_dsn,
+    let error_handler = ErrorHandler {
+        sentry_dsn: opt.sentry_dsn,
     };
 
     // Open the interface and begin streaming packet captures
