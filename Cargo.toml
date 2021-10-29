@@ -20,3 +20,4 @@ rusoto_core = { version="0.47.0", default_features=false, features=["rustls"] }
 rusoto_s3 = { version="0.47.0", default_features=false, features=["rustls"] }
 dns-parser = "0.8.0"
 base64 = "0.13.0"
+sentry = {version = "0.23.0", default_features=false, features=["reqwest", "rustls"]}

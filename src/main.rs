@@ -9,6 +9,8 @@ use std::time::Duration;
 use structopt::StructOpt;
 use tokio::{signal, task};
 
+mod errors;
+use errors::ErrorHandler;
 mod packet;
 mod storage;
 mod utils;
@@ -32,6 +34,9 @@ struct Opt {
 
     #[structopt(long, default_value = "5")]
     packet_log_interval: u64,
+
+    #[structopt(long)]
+    sentry_dsn: Option<String>,
 }
 
 #[tokio::main]
@@ -51,6 +56,12 @@ async fn main() -> Result<(), anyhow::Error> {
         storage_bucket: opt.storage_bucket,
     };
 
+    // Set up error handling
+    let error_handler = ErrorHandler{
+        sentry_dsn:opt.sentry_dsn,
+    };
+
+    // Open the interface and begin streaming packet captures
     let cap = Capture::from_device(opt.iface.as_str())?
         .immediate_mode(true)
         .open()?
@@ -64,15 +75,19 @@ async fn main() -> Result<(), anyhow::Error> {
     while let Some(packet_chunk) = packet_events.next().await {
         let s3 = s3.clone();
         let bucket = config.storage_bucket.clone();
+        let error_handler = error_handler.clone();
 
         // Send packet logs to cloud storage.
         task::spawn(async move {
             let mut serializer = AsyncSerializer::from_writer(vec![]);
 
-            for result in &packet_chunk {
+            for result in packet_chunk {
                 match result {
                     Ok(log) => serializer.serialize(&log).await.unwrap(),
-                    Err(err) => eprintln!("Error parsing packet: {}", err),
+                    Err(err) => {
+                        let msg = format!("Error parsing packet: {}", err);
+                        error_handler.error(msg.as_str());
+                    }
                 }
             }
 
@@ -88,7 +103,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
             match s3.put_object(req).await {
                 Ok(_) => println!("Saved {}", filename),
-                Err(err) => eprintln!("Error saving to S3: {}", err.to_string()),
+                Err(err) => {
+                    let msg = format!("Error saving to S3: {}", err.to_string());
+                    error_handler.error(msg.as_str());
+                }
             }
         });
     }

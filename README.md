@@ -79,6 +79,10 @@ cargo run --bin wg-wiretap -- \
 --packet-log-interval 5
 ```
 
+### Sentry
+`wg-wiretap` logs errors to `stderr` and it can optionally send errors to [Sentry](https://sentry.io).
+To enable Sentry, pass a Sentry DSN using the `--sentry-dsn` flag.
+
 ## Log Format
 `wg-wiretap` stores logs as CSV to a provided S3 bucket.
 Each log has the following fields:
