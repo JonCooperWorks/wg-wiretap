@@ -87,7 +87,7 @@ Each log has the following fields:
 - `src_port` - The source port a packet was sent from.
 - `dst` - The IP address a packet is destined to
 - `dst_port` - The port the packet is destined to
-- `l3_protocol` - Layer 3 protocol of the packet, such as TCP, UDP and ICMP.
+- `l3_protocol` - Layer 3 protocol of the packet, such as TCP, UDP or ICMP.
 - `size` - The size of the packet in bytes
 - `timestamp` - The [unix timestamp](https://en.wikipedia.org/wiki/Unix_time) the packet was received by `wg-wiretap` in nanoseconds.
 - `dns` - A base64 encoded DNS packet. This field is optional and will only be populated for DNS traffic.
