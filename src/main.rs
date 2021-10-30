@@ -51,6 +51,8 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     let s3 = S3Client::new(region);
+    let s3 = Arc::new(s3);
+
     let config = storage::Config {
         max_packets_per_log: opt.max_packets_per_log,
         packet_log_interval: Duration::from_secs(opt.packet_log_interval * 60),
@@ -75,7 +77,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_chunk) = packet_events.next().await {
-        let s3 = s3.clone();
+        let s3 = Arc::clone(&s3);
         let bucket = config.storage_bucket.clone();
         let error_handler = Arc::clone(&error_handler);
 
