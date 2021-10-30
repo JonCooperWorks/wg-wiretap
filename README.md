@@ -88,10 +88,10 @@ To enable Sentry, pass a Sentry DSN using the `--sentry-dsn` flag.
 Each log has the following fields:
 
 - `src` - A packet's source IP address
-- `src_port` - The source port a packet was sent from.
+- `src_port` - The source port a packet was sent from. This field is optional as not all protocols use port numbers.
 - `dst` - The IP address a packet is destined to
-- `dst_port` - The port the packet is destined to
-- `l3_protocol` - Layer 3 protocol of the packet, such as TCP, UDP or ICMP.
+- `dst_port` - The port the packet is destined to. This field is optional as not all protocols use port numbers.
+- `l3_protocol` - Layer 3 [protocol number](https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers) of the packet, such as TCP, UDP or ICMP. 
 - `size` - The size of the packet in bytes
 - `timestamp` - The [unix timestamp](https://en.wikipedia.org/wiki/Unix_time) the packet was received by `wg-wiretap` in nanoseconds.
 - `dns` - A base64 encoded DNS packet. This field is optional and will only be populated for DNS traffic.
