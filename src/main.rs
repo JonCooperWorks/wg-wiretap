@@ -1,11 +1,12 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use csv_async::AsyncSerializer;
 use futures::StreamExt;
 use futures_batch::ChunksTimeoutStreamExt;
 use pcap::Capture;
 use rusoto_core::Region;
 use rusoto_s3::{PutObjectRequest, S3Client, S3};
-
-use std::time::Duration;
 use structopt::StructOpt;
 use tokio::{signal, task};
 
@@ -60,6 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let error_handler = ErrorHandler {
         sentry_dsn: opt.sentry_dsn,
     };
+    let error_handler = Arc::new(error_handler);
 
     // Open the interface and begin streaming packet captures
     let cap = Capture::from_device(opt.iface.as_str())?
@@ -75,7 +77,7 @@ async fn main() -> Result<(), anyhow::Error> {
     while let Some(packet_chunk) = packet_events.next().await {
         let s3 = s3.clone();
         let bucket = config.storage_bucket.clone();
-        let error_handler = error_handler.clone();
+        let error_handler = Arc::clone(&error_handler);
 
         // Send packet logs to cloud storage.
         task::spawn(async move {

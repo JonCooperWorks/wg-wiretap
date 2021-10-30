@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use crate::utils;
 
-/// A FlowLog is a CSV record of a packet sent over a Wireguard network interface.
+/// A `FlowLog` is a CSV record of a packet sent over a Wireguard network interface.
 /// The dns field should contain a base64 encoded DNS packet.
 #[derive(Serialize)]
 pub struct FlowLog {

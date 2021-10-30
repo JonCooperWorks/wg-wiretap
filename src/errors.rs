@@ -1,8 +1,8 @@
 use sentry::Level;
 
-/// ErrorHandler manages errors received in the course of the program.
+/// `ErrorHandler` manages errors received in the course of the program.
 /// It will print them to stderr by default.
-/// If a Sentry DSN is provided, ErrorHandler will log errors to Sentry
+/// If a Sentry DSN is provided, `ErrorHandler` will log errors to Sentry
 /// for further investigation.
 #[derive(Clone)]
 pub struct ErrorHandler {
