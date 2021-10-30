@@ -12,12 +12,9 @@ pub struct ErrorHandler {
 impl ErrorHandler {
     pub fn error(&self, message: &str) {
         eprintln!("{}", message);
-        match &self.sentry_dsn {
-            Some(sentry_dsn) => {
-                let _guard = sentry::init(sentry_dsn.as_str());
-                sentry::capture_message(message, Level::Error);
-            }
-            None => {}
+        if let Some(sentry_dsn) = &self.sentry_dsn {
+            let _guard = sentry::init(sentry_dsn.as_str());
+            sentry::capture_message(message, Level::Error);
         }
     }
 }
