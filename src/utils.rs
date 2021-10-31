@@ -1,8 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::SystemTime;
 
-pub fn timestamp() -> u128 {
+pub fn timestamp() -> SystemTime {
     SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_nanos()
 }

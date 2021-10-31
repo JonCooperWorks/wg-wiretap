@@ -3,13 +3,7 @@
 Since Wireguard doesn't send ethernet frames, `wg-wiretap` will not interpret them and will fail on any interface that sends them.
 Check out [wiretap](https://github.com/JonCooperWorks/wiretap) for an example of logging ethernet frames using eBPF.
 I use this to let me take per-client logs through my Wireguard VPNs.
-`wg-wiretap` will take flow logs from a Wireguard interface and store them to AWS S3 compatible cloud storage as CSV.
-The S3 credentials should be set as environment variables with the following names:
-
-```
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-```
+`wg-wiretap` will take flow logs from a Wireguard interface and store them to MongoDB compatible cloud storage.
 
 `wg-wiretap` is meant to help me learn and should not be used in a production environment.
 
@@ -46,7 +40,7 @@ cargo build --release
 ```
 
 ## Run
-`wg-wiretap` can be configured to send flow logs for a particular interface to [S3](https://aws.amazon.com/s3/) compatible storage.
+`wg-wiretap` can be configured to send flow logs for a particular interface to MongoDB compatible storage.
 By default, it will log from `wg0`, but can be made to listen to any interface with the `--iface` flag.
 You can run this without root by setting the `CAP_NET_RAW,CAP_NET_ADMIN=+eip` capabilities on the `wg-wiretap` binary.
 
@@ -54,29 +48,23 @@ You can run this without root by setting the `CAP_NET_RAW,CAP_NET_ADMIN=+eip` ca
 sudo setcap CAP_NET_RAW,CAP_NET_ADMIN=+eip wg-wiretap
 ```
 
-### S3 Storage
-`wg-wiretap` expects AWS credentials to be passed the environment variables:
-
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-
-Pass the bucket, endpoint and region for S3 compatible storage using the `--storage-bucket`, `--storage-endpoint` and `--storage-region` flags.
+### MongoDB Storage
+`wg-wiretap` accepts MongoDB connection information via flags.
+Pass the connection string, database and collection for MongoDB compatible storage using the `--connection-string`, `--database` and `--collection` flags.
 
 ### Log Intervals
-`wg-wiretap` can be made to log packets to S3 compatible storage at intervals.
-By default, it will log every million (1000000) packets or 5 minutes, whichever comes first.
+`wg-wiretap` can be made to log packets to MongoDB compatible storage at intervals.
+By default, it will log every half million (500000) packets or 1 minute, whichever comes first.
 You can change these with the `--max-packets-per-log` and `--packet-log-interval` flags.
 
 ```bash
-AWS_ACCESS_KEY_ID=AWS_ACCESS_KEY_ID \
-AWS_SECRET_ACCESS_KEY=AWS_SECRET_KEY \
 cargo run --bin wg-wiretap -- \
 --iface wg0 \
---storage-bucket bucket-name \
---storage-endpoint https://s3-storage-endpoint \
---storage-region s3-region \
---max-packets-per-log 1000000 \
---packet-log-interval 5
+--connection-string mongodb://connnection-string \
+--database database \
+--collection collection \
+--max-packets-per-log 500000 \
+--packet-log-interval 1
 ```
 
 ### Sentry
@@ -84,7 +72,7 @@ cargo run --bin wg-wiretap -- \
 To enable Sentry, pass a Sentry DSN using the `--sentry-dsn` flag.
 
 ## Log Format
-`wg-wiretap` stores logs as CSV to a provided S3 bucket.
+`wg-wiretap` stores logs to a provided MongoDB compatible database.
 Each log has the following fields:
 
 - `src` - A packet's source IP address
@@ -93,5 +81,5 @@ Each log has the following fields:
 - `dst_port` - The port the packet is destined to. This field is optional as not all protocols use port numbers.
 - `l3_protocol` - Layer 3 [protocol number](https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers) of the packet, such as TCP, UDP or ICMP. 
 - `size` - The size of the packet in bytes
-- `timestamp` - The [unix timestamp](https://en.wikipedia.org/wiki/Unix_time) the packet was received by `wg-wiretap` in nanoseconds.
-- `dns` - A base64 encoded DNS packet. This field is optional and will only be populated for DNS traffic.
+- `timestamp` - The [unix timestamp](https://en.wikipedia.org/wiki/Unix_time) the packet was received by `wg-wiretap` in milliseconds.
+- `dns` - Information from DNS packet. This field is optional and will only be populated for DNS traffic.

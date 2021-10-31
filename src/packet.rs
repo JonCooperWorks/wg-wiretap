@@ -1,25 +1,118 @@
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::str;
 
+use bson::DateTime;
+use dns_parser::rdata::RData;
 use dns_parser::Packet as DnsPacket;
 use etherparse::{IpHeader, PacketHeaders, TransportHeader};
 use pcap::stream::PacketCodec;
 use pcap::{Error::PcapError, Packet};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::utils;
 
-/// A `FlowLog` is a CSV record of a packet sent over a Wireguard network interface.
-/// The dns field should contain a base64 encoded DNS packet.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
+pub struct DnsInfo {
+    pub name: Option<String>,
+    pub answers: Vec<ResourceRecord>,
+    pub nameservers: Vec<ResourceRecord>,
+    pub additional: Vec<ResourceRecord>,
+}
+
+impl DnsInfo {
+    pub fn new(packet: &DnsPacket) -> DnsInfo {
+        let name = if packet.questions.is_empty() {
+            None
+        } else {
+            Some(packet.questions[0].qname.to_string())
+        };
+
+        let answers = packet
+            .answers
+            .iter()
+            .map(|answer| ResourceRecord::new(answer))
+            .collect::<Vec<_>>();
+
+        let nameservers = packet
+            .nameservers
+            .iter()
+            .map(|nameserver| ResourceRecord::new(nameserver))
+            .collect::<Vec<_>>();
+
+        let additional = packet
+            .additional
+            .iter()
+            .map(|additional| ResourceRecord::new(additional))
+            .collect::<Vec<_>>();
+
+        Self {
+            name,
+            answers,
+            nameservers,
+            additional,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ResourceRecord {
+    pub name: String,
+    pub record_type: String,
+    pub rdata: String,
+}
+
+impl ResourceRecord {
+    pub fn new(record: &dns_parser::ResourceRecord) -> ResourceRecord {
+        let name = record.name.to_string();
+        let (rdata, record_type) = match &record.data {
+            RData::A(ip_address) => (ip_address.0.to_string(), "A".to_string()),
+            RData::AAAA(ip_address) => (ip_address.0.to_string(), "AAAA".to_string()),
+            RData::CNAME(name) => (name.to_string(), "CNAME".to_string()),
+            RData::MX(record) => (record.exchange.to_string(), "MX".to_string()),
+            RData::NS(name) => (name.to_string(), "NS".to_string()),
+            RData::PTR(name) => (name.to_string(), "PTR".to_string()),
+            RData::SRV(record) => (
+                format!("{}:{}", record.target, record.port),
+                "SRV".to_string(),
+            ),
+            RData::TXT(record) => {
+                let mut text = String::from("");
+                while let Some(txt) = record.iter().next() {
+                    match str::from_utf8(&txt) {
+                        Ok(txt) => text.push_str(txt),
+                        Err(_) => continue,
+                    }
+                    text.push('\n')
+                }
+                (text, "TXT".to_string())
+            }
+            // TODO: build rest of DNS types
+            _ => (
+                "not supported yet".to_string(),
+                "not supported yet".to_string(),
+            ),
+        };
+
+        Self {
+            name,
+            record_type,
+            rdata,
+        }
+    }
+}
+
+/// A `FlowLog` is a record of a packet sent over a Wireguard network interface.
+/// It will have DNS lookup info for DNS packets.
+#[derive(Serialize, Deserialize)]
 pub struct FlowLog {
-    pub src: IpAddr,
+    pub src: String,
     pub src_port: Option<u16>,
-    pub dst: IpAddr,
+    pub dst: String,
     pub dst_port: Option<u16>,
     pub l3_protocol: u8,
     pub size: u32,
-    pub timestamp: u128,
-    pub dns: Option<String>,
+    pub timestamp: DateTime,
+    pub dns: Option<DnsInfo>,
 }
 
 unsafe impl Send for FlowLog {}
@@ -35,13 +128,13 @@ impl PacketCodec for FlowLogCodec {
             Ok(packet) => {
                 let (src, dst, l3_protocol) = match packet.ip {
                     Some(IpHeader::Version4(ipv4)) => (
-                        IpAddr::V4(Ipv4Addr::from(ipv4.source)),
-                        IpAddr::V4(Ipv4Addr::from(ipv4.destination)),
+                        IpAddr::V4(Ipv4Addr::from(ipv4.source)).to_string(),
+                        IpAddr::V4(Ipv4Addr::from(ipv4.destination)).to_string(),
                         ipv4.protocol,
                     ),
                     Some(IpHeader::Version6(ipv6)) => (
-                        IpAddr::V6(Ipv6Addr::from(ipv6.source)),
-                        IpAddr::V6(Ipv6Addr::from(ipv6.destination)),
+                        IpAddr::V6(Ipv6Addr::from(ipv6.source)).to_string(),
+                        IpAddr::V6(Ipv6Addr::from(ipv6.destination)).to_string(),
                         ipv6.next_header,
                     ),
 
@@ -52,17 +145,17 @@ impl PacketCodec for FlowLogCodec {
                     Some(TransportHeader::Udp(udp)) => (
                         Some(udp.source_port),
                         Some(udp.destination_port),
-                        base64_dns_packet(packet.payload),
+                        parse_dns_packet(packet.payload),
                     ),
                     Some(TransportHeader::Tcp(tcp)) => (
                         Some(tcp.source_port),
                         Some(tcp.destination_port),
-                        base64_dns_packet(packet.payload),
+                        parse_dns_packet(packet.payload),
                     ),
                     None => (None, None, None),
                 };
 
-                let timestamp = utils::timestamp();
+                let timestamp = DateTime::from_system_time(utils::timestamp());
                 let log = FlowLog {
                     src,
                     src_port,
@@ -81,9 +174,9 @@ impl PacketCodec for FlowLogCodec {
     }
 }
 
-fn base64_dns_packet(packet: &[u8]) -> Option<String> {
+fn parse_dns_packet(packet: &[u8]) -> Option<DnsInfo> {
     match DnsPacket::parse(packet) {
-        Ok(_) => Some(base64::encode(packet)),
+        Ok(packet) => Some(DnsInfo::new(&packet)),
         Err(_) => None,
     }
 }
