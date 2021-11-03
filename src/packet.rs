@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DnsInfo {
     pub name: Option<String>,
     pub answers: Vec<ResourceRecord>,
@@ -54,7 +54,7 @@ impl DnsInfo {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ResourceRecord {
     pub name: String,
     pub record_type: String,
@@ -76,15 +76,15 @@ impl ResourceRecord {
                 "SRV".to_string(),
             ),
             RData::TXT(record) => {
-                let mut text = String::from("");
+                let mut rdata = String::from("");
                 while let Some(txt) = record.iter().next() {
-                    match str::from_utf8(&txt) {
-                        Ok(txt) => text.push_str(txt),
+                    match str::from_utf8(txt) {
+                        Ok(txt) => rdata.push_str(txt),
                         Err(_) => continue,
                     }
-                    text.push('\n')
+                    rdata.push('\n');
                 }
-                (text, "TXT".to_string())
+                (rdata, "TXT".to_string())
             }
             // TODO: build rest of DNS types
             _ => (
@@ -103,7 +103,7 @@ impl ResourceRecord {
 
 /// A `FlowLog` is a record of a packet sent over a Wireguard network interface.
 /// It will have DNS lookup info for DNS packets.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct FlowLog {
     pub src: String,
     pub src_port: Option<u16>,

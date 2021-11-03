@@ -52,7 +52,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let collection = Client::with_options(client_options)?
         .database(&opt.database)
         .collection(&opt.collection);
-    let collection = Arc::new(collection);
+
+    // Configure indexes for TTL and timestamp queries
 
     // Set up error handling
     let error_handler = ErrorHandler {
@@ -82,7 +83,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     while let Some(packet_chunk) = packet_events.next().await {
         let error_handler = Arc::clone(&error_handler);
-        let collection = Arc::clone(&collection);
+        let collection = collection.clone();
 
         task::spawn(async move {
             // Send packet logs to MongoDB compatible storage
