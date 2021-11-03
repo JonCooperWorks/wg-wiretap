@@ -82,16 +82,16 @@ async fn main() -> Result<(), anyhow::Error> {
     .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_chunk) = packet_events.next().await {
-        let error_handler = Arc::clone(&error_handler);
-        let collection = collection.clone();
+        let error_handler_ref = Arc::clone(&error_handler);
+        let collection_ref = collection.clone();
 
         task::spawn(async move {
             // Send packet logs to MongoDB compatible storage
-            match collection.insert_many(packet_chunk, None).await {
+            match collection_ref.insert_many(packet_chunk, None).await {
                 Ok(_) => println!("Saved packets"),
                 Err(err) => {
                     let msg = format!("Error saving packet chunk: {}", err);
-                    error_handler.error(msg.as_str());
+                    error_handler_ref.error(msg.as_str());
                 }
             }
         });
