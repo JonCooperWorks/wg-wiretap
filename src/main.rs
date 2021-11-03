@@ -77,9 +77,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .chunks_timeout(config.max_packets_per_log, config.packet_log_interval);
 
     while let Some(packet_chunk) = packet_events.next().await {
-        let s3 = Arc::clone(&s3);
-        let bucket = config.storage_bucket.clone();
-        let error_handler = Arc::clone(&error_handler);
+        let s3_ref = Arc::clone(&s3);
+        let bucket_ref = config.storage_bucket.clone();
+        let error_handler_ref = Arc::clone(&error_handler);
 
         // Send packet logs to cloud storage.
         task::spawn(async move {
@@ -90,7 +90,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     Ok(log) => serializer.serialize(&log).await.unwrap(),
                     Err(err) => {
                         let msg = format!("Error parsing packet: {}", err);
-                        error_handler.error(msg.as_str());
+                        error_handler_ref.error(msg.as_str());
                     }
                 }
             }
@@ -99,17 +99,17 @@ async fn main() -> Result<(), anyhow::Error> {
             let timestamp = utils::timestamp();
             let filename = format!("{}.csv", timestamp);
             let req = PutObjectRequest {
-                bucket: bucket.clone(),
+                bucket: bucket_ref.clone(),
                 key: filename.clone(),
                 body: Some(body.into()),
                 ..PutObjectRequest::default()
             };
 
-            match s3.put_object(req).await {
+            match s3_ref.put_object(req).await {
                 Ok(_) => println!("Saved {}", filename),
                 Err(err) => {
                     let msg = format!("Error saving to S3: {}", err.to_string());
-                    error_handler.error(msg.as_str());
+                    error_handler_ref.error(msg.as_str());
                 }
             }
         });
