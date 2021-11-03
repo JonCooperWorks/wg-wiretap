@@ -86,11 +86,11 @@ impl ResourceRecord {
                 }
                 (rdata, "TXT".to_string())
             }
-            // TODO: build rest of DNS types
-            _ => (
-                "not supported yet".to_string(),
-                "not supported yet".to_string(),
+            RData::SOA(record) => (
+                format!("{} ({})", record.primary_ns, record.mailbox),
+                "SOA".to_string(),
             ),
+            RData::Unknown(unknown) => (base64::encode(unknown), "UNKNOWN".to_string()),
         };
 
         Self {

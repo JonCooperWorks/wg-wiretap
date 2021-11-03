@@ -53,8 +53,6 @@ async fn main() -> Result<(), anyhow::Error> {
         .database(&opt.database)
         .collection(&opt.collection);
 
-    // Configure indexes for TTL and timestamp queries
-
     // Set up error handling
     let error_handler = ErrorHandler {
         sentry_dsn: opt.sentry_dsn,
