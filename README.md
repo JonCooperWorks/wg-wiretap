@@ -60,7 +60,7 @@ sudo setcap CAP_NET_RAW,CAP_NET_ADMIN=+eip wg-wiretap
 ```
 
 ### S3 Storage
-`wg-wiretap` expects AWS credentials to be passed the environment variables:
+`wg-wiretap` expects AWS credentials to be passed in the environment variables:
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
