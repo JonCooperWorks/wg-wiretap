@@ -34,12 +34,12 @@ impl PacketCodec for FlowLogCodec {
         match PacketHeaders::from_ip_slice(&packet) {
             Ok(packet) => {
                 let (src, dst, l3_protocol) = match packet.ip {
-                    Some(IpHeader::Version4(ipv4)) => (
+                    Some(IpHeader::Version4(ipv4, _)) => (
                         IpAddr::V4(Ipv4Addr::from(ipv4.source)),
                         IpAddr::V4(Ipv4Addr::from(ipv4.destination)),
                         ipv4.protocol,
                     ),
-                    Some(IpHeader::Version6(ipv6)) => (
+                    Some(IpHeader::Version6(ipv6, _)) => (
                         IpAddr::V6(Ipv6Addr::from(ipv6.source)),
                         IpAddr::V6(Ipv6Addr::from(ipv6.destination)),
                         ipv6.next_header,
