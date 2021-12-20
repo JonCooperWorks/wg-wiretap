@@ -27,7 +27,7 @@ sudo apt-get update
 sudo apt-get upgrade
 
 # Then install PCAP dependencies
-sudo apt-get install -y build-essential libpcap-dev
+sudo apt-get -y install build-essential libpcap-dev
 
 # Install Rust
 curl https://sh.rustup.rs -sSf | sh  -s -- -y
