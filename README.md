@@ -27,7 +27,7 @@ sudo apt-get update
 sudo apt-get upgrade
 
 # Then install PCAP dependencies
-sudo apt-get install -y sudo build-essential libpcap-dev
+sudo apt-get install -y build-essential libpcap-dev
 
 # Install Rust
 curl https://sh.rustup.rs -sSf | sh  -s -- -y
@@ -35,6 +35,11 @@ curl https://sh.rustup.rs -sSf | sh  -s -- -y
 # Use rustup to install stable toolchain
 rustup install stable
 ```
+
+#### VSCode Docker
+`wg-wiretap` can be built on non-Linux OSs by using VSCode's [Remote-Container](https://code.visualstudio.com/docs/remote/containers) extension.
+Simply open the project in a container and share `git` credentials according to [the instructions](https://code.visualstudio.com/docs/remote/containers#_sharing-git-credentials-with-your-container).
+After this, you can build the project normally using `cargo`.
 
 ## Build
 ```bash
